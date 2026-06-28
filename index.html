@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>ㅂㅇ 생성기</title>
+<style>
+    body { font-family: 'Pretendard', sans-serif; display: flex; gap: 20px; padding: 20px; background: #f0f2f5; }
+    .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); flex: 1; }
+    input, select, textarea, button { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+    .preview-box { background: #fff; border: 1px solid #ddd; padding: 20px; min-height: 200px; margin-bottom: 10px; }
+    textarea { height: 150px; font-family: monospace; resize: vertical; }
+    
+    /* 미리보기용 스타일*/
+    .chat-row { width: 100%; display: flex; justify-content: center; box-sizing: border-box; margin: 20px 0; }
+    .chat-wrapper { width: 600px; display: flex; gap: 10px; align-items: flex-start; box-sizing: border-box; }
+    .chat-thumb { width: 30px; flex-shrink: 0; margin-top: 4px; }
+    .chat-thumb img { width: 30px; height: auto; display: block; border-radius: 4px; }
+    .chat-bubble { padding: 9px 15px; border-radius: 8px; flex: 1; font-size: 11pt; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+    <div class="panel">
+        <h3>1. 캐릭터 프리셋 등록</h3>
+        <input type="text" id="charName" placeholder="캐릭터 이름">
+        <input type="text" id="charImg" placeholder="프로필 이미지 URL">
+        <label>말풍선 배경색:</label>
+        <input type="color" id="bgColor" value="#F5F5F5">
+        <button onclick="addPreset()">프리셋 등록/수정</button>
+
+        <hr>
+
+        <h3>2. 대화 입력</h3>
+        <select id="charSelect">
+            <option value="">캐릭터를 선택하세요</option>
+        </select>
+        <textarea id="dialogueText" placeholder="대사를 입력하세요..."></textarea>
+        <button onclick="addDialogue()">대화 추가하기</button>
+        <button onclick="clearChat()" style="background: #ff4d4f; color: white; border: none;">초기화</button>
+    </div>
+
+    <div class="panel">
+        <h3>미리보기 (Preview)</h3>
+        <div id="previewArea" class="preview-box"></div>
+
+        <h3>출력된 HTML 코드</h3>
+        <button onclick="copyHtml()">코드 복사하기</button>
+        <textarea id="outputHtml" readonly></textarea>
+    </div>
+
+<script>
+    // 상태 관리
+    let presets = JSON.parse(localStorage.getItem('chatPresets')) || {};
+    let currentChatHtml = "";
+
+    // 초기화 함수
+    function init() {
+        updateSelectBox();
+    }
+
+    // 프리셋 등록
+    function addPreset() {
+        const name = document.getElementById('charName').value.trim();
+        const img = document.getElementById('charImg').value.trim();
+        const bg = document.getElementById('bgColor').value;
+
+        if (!name || !img) {
+            alert("이름과 이미지 URL을 모두 입력해주세요.");
+            return;
+        }
+
+        presets[name] = { img: img, bgColor: bg };
+        localStorage.setItem('chatPresets', JSON.stringify(presets));
+        updateSelectBox();
+        alert(`${name} 프리셋이 저장되었습니다!`);
+    }
+
+    // 드롭다운 업데이트
+    function updateSelectBox() {
+        const select = document.getElementById('charSelect');
+        select.innerHTML = '<option value="">캐릭터를 선택하세요</option>';
+        for (const name in presets) {
+            select.innerHTML += `<option value="${name}">${name}</option>`;
+        }
+    }
+
+    // 대화 추가 로직 (티스토리용 인라인 스타일 HTML 생성)
+    function addDialogue() {
+        const selectedName = document.getElementById('charSelect').value;
+        const text = document.getElementById('dialogueText').value.replace(/\n/g, '<br/>'); // 줄바꿈 처리
+
+        if (!selectedName || !text) {
+            alert("캐릭터를 선택하고 대사를 입력하세요.");
+            return;
+        }
+
+        const charData = presets[selectedName];
+        
+        // 인라인 스타일 템플릿
+        const snippet = `
+<div style="width: 100%; display: flex; justify-content: center; box-sizing: border-box; margin: 20px 0;">
+    <div style="width: 600px; display: flex; gap: 10px; align-items: flex-start; box-sizing: border-box;">
+        <div style="width: 30px; flex-shrink: 0; margin-top: 4px;">
+            <img style="width: 30px; height: auto; display: block;" src="${charData.img}" alt="${selectedName}">
+        </div>
+        <div style="background: ${charData.bgColor}; padding: 9px 15px; border-radius: 8px; box-sizing: border-box; flex: 1; font-size: 11pt; color: #4d4d4d;">
+            ${text}
+        </div>
+    </div>
+</div>`;
+
+        currentChatHtml += snippet;
+        updateView();
+        document.getElementById('dialogueText').value = ""; // 입력창 비우기
+    }
+
+    function updateView() {
+        document.getElementById('previewArea').innerHTML = currentChatHtml;
+        document.getElementById('outputHtml').value = currentChatHtml;
+    }
+
+    function clearChat() {
+        if(confirm("작성 중인 모든 대화를 지우시겠습니까?")) {
+            currentChatHtml = "";
+            updateView();
+        }
+    }
+
+    function copyHtml() {
+        const output = document.getElementById('outputHtml');
+        output.select();
+        document.execCommand('copy');
+        alert("코드가 복사되었습니다.");
+    }
+
+    init();
+</script>
+</body>
+</html>
