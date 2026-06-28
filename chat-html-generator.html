@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>대화형 HTML 생성기</title>
+<style>
+  :root{
+    --bg:#F6F5FA;
+    --card:#FFFFFF;
+    --border:#EAE7F2;
+    --text:#2B2A33;
+    --muted:#8B889B;
+    --accent:#6453F0;
+    --accent-soft:#EFEBFE;
+    --danger:#E2574C;
+    --radius-lg:18px;
+    --radius-md:12px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+
+  .app{ max-width:480px; margin:0 auto; padding:20px 16px 80px; }
+  header.top{ margin-bottom:18px; }
+  header.top h1{ font-size:19px; margin:0 0 4px; letter-spacing:-0.2px; }
+  header.top p{ font-size:13px; color:var(--muted); margin:0; line-height:1.5; }
+
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; margin-bottom:16px; }
+  .card-head{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .step-num{ width:24px; height:24px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .card-head h2{ font-size:15px; margin:0; font-weight:700; }
+  .hint{ font-size:12px; color:var(--muted); margin:0 0 12px; line-height:1.5; }
+
+  label{ display:block; font-size:12.5px; color:var(--muted); margin:12px 0 5px; }
+  label:first-of-type{ margin-top:0; }
+  input[type=text], input[type=url], textarea, select{
+    width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:var(--radius-md);
+    font-size:15px; font-family:inherit; background:#fff; color:var(--text);
+  }
+  textarea{ min-height:84px; resize:vertical; line-height:1.5; }
+  input[type=file]{ width:100%; font-size:13px; padding:8px 0; color:var(--muted); }
+  .row{ display:flex; gap:8px; }
+  .row > *{ flex:1; min-width:0; }
+  input[type=color]{ width:48px; height:42px; padding:2px; border:1px solid var(--border); border-radius:var(--radius-md); flex:0 0 48px; }
+
+  button{ font-family:inherit; cursor:pointer; border-radius:var(--radius-md); font-size:14.5px; font-weight:600; padding:12px 14px; border:1px solid transparent; transition:transform .12s, opacity .12s; }
+  button:active{ transform:scale(0.97); }
+  .btn-primary{ background:var(--accent); color:#fff; width:100%; margin-top:14px; }
+  .btn-primary:disabled{ opacity:.6; }
+  .btn-secondary{ background:#fff; border:1px solid var(--border); color:var(--text); }
+  .btn-secondary.danger{ color:var(--danger); border-color:#f3d6d3; }
+  .btn-row{ display:flex; gap:8px; margin-top:14px; }
+  .btn-row > button{ flex:1; margin-top:0; }
+
+  .img-preview-wrap{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .img-preview-wrap img{ width:44px; height:44px; border-radius:50%; object-fit:cover; border:1px solid var(--border); display:none; background:#f2f1f7; }
+  .img-preview-wrap span{ font-size:12px; color:var(--muted); }
+
+  .preset-list-head{ display:flex; justify-content:space-between; align-items:center; margin-top:16px; }
+  .preset-list-head label{ margin:0; }
+  .link-btn{ background:none; border:none; color:var(--muted); font-size:12px; font-weight:500; padding:0; text-decoration:underline; }
+  .preset-list{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .preset-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--bg); border:1px solid var(--border); border-radius:999px; padding:4px 6px 4px 4px; font-size:13px; cursor:pointer; }
+  .preset-chip img{ width:22px; height:22px; border-radius:50%; object-fit:cover; background:#eee; }
+  .preset-chip .del{ color:var(--muted); padding:0 4px; font-size:12px; }
+  .preset-chip .del:hover{ color:var(--danger); }
+  .empty-hint{ color:var(--muted); font-size:13px; text-align:center; padding:18px 10px; margin:0; }
+
+  .segmented{ display:flex; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-md); padding:3px; gap:3px; }
+  .segmented button{ flex:1; background:transparent; border:none; padding:9px 8px; font-size:14px; font-weight:600; color:var(--muted); border-radius:9px; margin:0; }
+  .segmented button.active{ background:#fff; color:var(--accent); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+
+  .preview-area{ background:#fdfdfe; border:1px dashed var(--border); border-radius:var(--radius-md); padding:8px 6px; min-height:120px; }
+  .preview-area .empty-hint{ padding:36px 10px; }
+  .preview-item{ cursor:pointer; border-radius:10px; padding:4px; border:1px dashed transparent; }
+  .preview-item:hover, .preview-item:active{ background:var(--accent-soft); border-color:#dcd6fb; }
+
+  .export-row{ display:flex; gap:8px; margin-top:14px; }
+  .export-row > button{ flex:1; margin-top:0; }
+  details.code-details{ margin-top:12px; }
+  details.code-details summary{ cursor:pointer; font-size:13px; color:var(--muted); padding:4px 0; }
+  details.code-details textarea{ margin-top:8px; height:120px; font-family:'SF Mono', Consolas, monospace; font-size:12px; }
+
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(20,18,30,.45); display:flex; align-items:flex-end; justify-content:center; z-index:1000; visibility:hidden; opacity:0; transition:opacity .2s; }
+  .modal-backdrop.open{ visibility:visible; opacity:1; }
+  .modal-sheet{ background:#fff; width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:18px 18px 26px; transform:translateY(24px); transition:transform .25s ease; max-height:82vh; overflow-y:auto; }
+  .modal-backdrop.open .modal-sheet{ transform:translateY(0); }
+  .modal-sheet h3{ margin:2px 0 14px; font-size:16px; }
+
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#2B2A33; color:#fff; padding:10px 18px; border-radius:999px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:2000; max-width:88%; text-align:center; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (min-width:880px){
+    .app{ max-width:1040px; display:grid; grid-template-columns:380px 1fr; gap:22px; align-items:start; }
+    header.top{ grid-column:1 / -1; }
+    .col-right{ position:sticky; top:20px; }
+    .modal-backdrop{ align-items:center; }
+    .modal-sheet{ border-radius:20px; max-width:420px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>대화형 HTML 생성기</h1>
+    <p>캐릭터 대화와 내레이션을 만들어 블로그에 붙여넣을 HTML을 생성해요.</p>
+  </header>
+
+  <div class="col-left">
+    <section class="card">
+      <div class="card-head"><span class="step-num">1</span><h2>캐릭터 프리셋</h2></div>
+
+      <label>캐릭터 이름</label>
+      <input type="text" id="charName" placeholder="예: 쿠구리">
+
+      <label>프로필 이미지 URL</label>
+      <input type="text" id="charImgUrl" placeholder="https://...">
+
+      <label>또는 사진 업로드</label>
+      <input type="file" id="charImgFile" accept="image/*">
+
+      <div class="img-preview-wrap">
+        <img id="imgPreview" alt="" onerror="this.style.visibility='hidden'">
+        <span>이미지 미리보기</span>
+      </div>
+
+      <label>말풍선 색상 (불투명도 30%로 적용돼요)</label>
+      <div class="row">
+        <input type="color" id="bgColorPicker" value="#F5F5F5">
+        <input type="text" id="bgColorText" value="#F5F5F5" placeholder="#F5F5F5">
+      </div>
+
+      <button class="btn-primary" id="addPresetBtn">프리셋 저장</button>
+
+      <div class="preset-list-head">
+        <label>등록된 캐릭터</label>
+        <button class="link-btn" id="resetPresetsBtn">전체 초기화</button>
+      </div>
+      <div class="preset-list" id="presetList"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><span class="step-num">2</span><h2>대화 입력</h2></div>
+
+      <label>유형</label>
+      <div class="segmented" id="typeSegment">
+        <button type="button" class="active" data-type="bubble">말풍선</button>
+        <button type="button" data-type="narration">내레이션</button>
+      </div>
+
+      <div id="charSelectWrap">
+        <label>캐릭터</label>
+        <select id="charSelect"><option value="">캐릭터를 선택하세요</option></select>
+      </div>
+
+      <label>내용</label>
+      <textarea id="dialogueText" placeholder="대사를 입력하세요. 줄바꿈(Enter)마다 별도 말풍선으로 나뉘어요."></textarea>
+
+      <div class="btn-row">
+        <button class="btn-secondary" id="clearChatBtn">전체 지우기</button>
+        <button class="btn-primary" id="addDialogueBtn" style="margin-top:0;">대화 추가</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-right">
+    <section class="card">
+      <div class="card-head"><span class="step-num">3</span><h2>미리보기</h2></div>
+      <p class="hint">말풍선이나 내레이션을 탭하면 수정할 수 있어요.</p>
+      <div class="preview-area" id="previewArea"></div>
+
+      <div class="export-row">
+        <button class="btn-secondary" id="saveImageBtn">이미지로 저장</button>
+        <button class="btn-secondary" id="copyHtmlBtn">코드 복사</button>
+      </div>
+
+      <details class="code-details">
+        <summary>HTML 코드 보기</summary>
+        <textarea id="outputHtml" readonly></textarea>
+      </details>
+    </section>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="editModalBackdrop">
+  <div class="modal-sheet">
+    <h3>수정하기</h3>
+    <label>유형</label>
+    <div class="segmented" id="editTypeSegment">
+      <button type="button" data-type="bubble">말풍선</button>
+      <button type="button" data-type="narration">내레이션</button>
+    </div>
+    <div id="editCharWrap">
+      <label>캐릭터</label>
+      <select id="editChar"></select>
+    </div>
+    <label>내용</label>
+    <textarea id="editText"></textarea>
+    <div class="btn-row">
+      <button class="btn-secondary danger" id="deleteEditBtn">삭제</button>
+      <button class="btn-secondary" id="cancelEditBtn">취소</button>
+      <button class="btn-primary" id="saveEditBtn" style="margin-top:0;">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ---------- State ----------
+  let presets = {};       // { name: { img, color } }
+  let dialogues = [];     // { id, type:'bubble'|'narration', character, text }
+  let nextId = 1;
+  let pendingImgSrc = '';
+  let editingId = null;
+  let currentAddType = 'bubble';
+  let currentEditType = 'bubble';
+  let toastTimer = null;
+
+  // ---------- Storage adapter ----------
+  // Uses Claude's artifact storage (window.storage) when available,
+  // and falls back to localStorage when running outside Claude.ai (e.g. opened as a local file).
+  const storageAdapter = {
+    async get(key){
+      try {
+        if (window.storage && typeof window.storage.get === 'function'){
+          const r = await window.storage.get(key);
+          return r ? r.value : null;
+        }
+      } catch(e){}
+      try { return localStorage.getItem(key); } catch(e){ return null; }
+    },
+    async set(key, value){
+      try {
+        if (window.storage && typeof window.storage.set === 'function'){
+          await window.storage.set(key, value);
+          return;
+        }
+      } catch(e){}
+      try { localStorage.setItem(key, value); } catch(e){}
+    },
+    async remove(key){
+      try {
+        if (window.storage && typeof window.storage.delete === 'function'){
+          await window.storage.delete(key);
+        }
+      } catch(e){}
+      try { localStorage.removeItem(key); } catch(e){}
+    }
+  };
+
+  // ---------- Utilities ----------
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function isValidHex(v){
+    return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test((v || '').trim());
+  }
+
+  function expandHex(v){
+    const h = v.replace('#', '');
+    if (h.length === 3) return '#' + h.split('').map(c => c + c).join('');
+    return v;
+  }
+
+  function hexToRgba(hex, alpha){
+    let h = (hex || '#F5F5F5').replace('#', '').trim();
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    if (!/^[0-9A-Fa-f]{6}$/.test(h)) h = 'F5F5F5';
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function resizeImageFile(file, maxSize){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w >= h){ if (w > maxSize){ h = Math.round(h * maxSize / w); w = maxSize; } }
+          else { if (h > maxSize){ w = Math.round(w * maxSize / h); h = maxSize; } }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => reject(new Error('이미지를 불러오지 못했어요.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('파일을 읽지 못했어요.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function showToast(msg){
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // ---------- DOM refs ----------
+  const charName = $('charName');
+  const charImgUrl = $('charImgUrl');
+  const charImgFile = $('charImgFile');
+  const imgPreview = $('imgPreview');
+  const bgColorPicker = $('bgColorPicker');
+  const bgColorText = $('bgColorText');
+  const presetList = $('presetList');
+  const charSelect = $('charSelect');
+  const charSelectWrap = $('charSelectWrap');
+  const dialogueText = $('dialogueText');
+  const previewArea = $('previewArea');
+  const outputHtml = $('outputHtml');
+  const editModalBackdrop = $('editModalBackdrop');
+  const editChar = $('editChar');
+  const editCharWrap = $('editCharWrap');
+  const editText = $('editText');
+
+  // ---------- Presets ----------
+  async function loadPresets(){
+    const raw = await storageAdapter.get('chatPresets_v2');
+    try { presets = raw ? JSON.parse(raw) : {}; } catch(e){ presets = {}; }
+  }
+  async function savePresets(){
+    await storageAdapter.set('chatPresets_v2', JSON.stringify(presets));
+  }
+
+  function updateImgPreview(){
+    if (pendingImgSrc){ imgPreview.src = pendingImgSrc; imgPreview.style.visibility='visible'; imgPreview.style.display = 'block'; }
+    else { imgPreview.style.display = 'none'; imgPreview.src = ''; }
+  }
+
+  function updateCharSelects(){
+    const names = Object.keys(presets);
+    const opts = '<option value="">캐릭터를 선택하세요</option>' +
+      names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    const prevSelect = charSelect.value;
+    const prevEdit = editChar.value;
+    charSelect.innerHTML = opts;
+    editChar.innerHTML = opts;
+    if (names.includes(prevSelect)) charSelect.value = prevSelect;
+    if (names.includes(prevEdit)) editChar.value = prevEdit;
+  }
+
+  function renderPresetList(){
+    const names = Object.keys(presets);
+    if (names.length === 0){
+      presetList.innerHTML = '<p class="empty-hint">아직 등록된 캐릭터가 없어요.</p>';
+      return;
+    }
+    presetList.innerHTML = names.map(n => {
+      const p = presets[n];
+      return `<span class="preset-chip" data-name="${escapeHtml(n)}">
+        <img src="${p.img}" alt="" onerror="this.style.visibility='hidden'">
+        <span>${escapeHtml(n)}</span>
+        <span class="del" data-del="${escapeHtml(n)}">✕</span>
+      </span>`;
+    }).join('');
+  }
+
+  presetList.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del]');
+    if (del){ deletePreset(del.getAttribute('data-del')); return; }
+    const chip = e.target.closest('.preset-chip');
+    if (chip) loadPresetToForm(chip.getAttribute('data-name'));
+  });
+
+  function loadPresetToForm(name){
+    const p = presets[name];
+    if (!p) return;
+    charName.value = name;
+    charImgUrl.value = (p.img && p.img.startsWith('data:')) ? '' : (p.img || '');
+    pendingImgSrc = p.img || '';
+    updateImgPreview();
+    bgColorPicker.value = isValidHex(p.color) ? expandHex(p.color) : '#F5F5F5';
+    bgColorText.value = (isValidHex(p.color) ? p.color : '#F5F5F5').toUpperCase();
+    charName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function deletePreset(name){
+    if (!confirm(`'${name}' 프리셋을 삭제할까요?`)) return;
+    delete presets[name];
+    savePresets();
+    updateCharSelects();
+    renderPresetList();
+  }
+
+  $('resetPresetsBtn').addEventListener('click', async () => {
+    if (Object.keys(presets).length === 0) return;
+    if (!confirm('등록된 모든 캐릭터 프리셋을 삭제할까요?')) return;
+    presets = {};
+    await storageAdapter.remove('chatPresets_v2');
+    updateCharSelects();
+    renderPresetList();
+  });
+
+  charImgUrl.addEventListener('input', () => {
+    pendingImgSrc = charImgUrl.value.trim();
+    updateImgPreview();
+  });
+
+  charImgFile.addEventListener('change', async () => {
+    const file = charImgFile.files[0];
+    if (!file) return;
+    try {
+      pendingImgSrc = await resizeImageFile(file, 200);
+      charImgUrl.value = '';
+      updateImgPreview();
+    } catch(err){
+      alert('이미지를 처리하지 못했어요. 다른 사진으로 시도해주세요.');
+    }
+  });
+
+  bgColorPicker.addEventListener('input', () => {
+    bgColorText.value = bgColorPicker.value.toUpperCase();
+  });
+  bgColorText.addEventListener('input', () => {
+    const v = bgColorText.value.trim();
+    if (isValidHex(v)) bgColorPicker.value = expandHex(v);
+  });
+
+  $('addPresetBtn').addEventListener('click', async () => {
+    const name = charName.value.trim();
+    const colorText = bgColorText.value.trim();
+    if (!name){ alert('캐릭터 이름을 입력해주세요.'); return; }
+    if (!pendingImgSrc){ alert('이미지 URL을 입력하거나 사진을 업로드해주세요.'); return; }
+    if (!isValidHex(colorText)){ alert('올바른 컬러코드를 입력해주세요. 예: #F5F5F5'); return; }
+
+    presets[name] = { img: pendingImgSrc, color: colorText };
+    await savePresets();
+    updateCharSelects();
+    renderPresetList();
+
+    charName.value = '';
+    charImgUrl.value = '';
+    charImgFile.value = '';
+    pendingImgSrc = '';
+    updateImgPreview();
+    bgColorPicker.value = '#F5F5F5';
+    bgColorText.value = '#F5F5F5';
+    showToast(`'${name}' 프리셋을 저장했어요.`);
+  });
+
+  // ---------- Segmented controls ----------
+  function bindSegment(segmentEl, onChange){
+    segmentEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      [...segmentEl.children].forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(btn.getAttribute('data-type'));
+    });
+  }
+
+  bindSegment($('typeSegment'), (type) => {
+    currentAddType = type;
+    charSelectWrap.style.display = type === 'bubble' ? 'block' : 'none';
+  });
+
+  bindSegment($('editTypeSegment'), (type) => {
+    currentEditType = type;
+    editCharWrap.style.display = type === 'bubble' ? 'block' : 'none';
+  });
+
+  // ---------- Dialogue add ----------
+  $('addDialogueBtn').addEventListener('click', () => {
+    const charNameVal = charSelect.value;
+    if (currentAddType === 'bubble' && !charNameVal){ alert('캐릭터를 선택해주세요.'); return; }
+    const lines = dialogueText.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0){ alert('내용을 입력해주세요.'); return; }
+    lines.forEach(line => {
+      dialogues.push({
+        id: nextId++,
+        type: currentAddType,
+        character: currentAddType === 'bubble' ? charNameVal : null,
+        text: line
+      });
+    });
+    dialogueText.value = '';
+    renderAll();
+  });
+
+  $('clearChatBtn').addEventListener('click', () => {
+    if (dialogues.length === 0) return;
+    if (confirm('작성 중인 모든 대화를 지울까요?')){ dialogues = []; renderAll(); }
+  });
+
+  // ---------- Rendering ----------
+  function buildBubbleHtml(d, interactive){
+    const p = presets[d.character] || { img: '', color: '#F5F5F5' };
+    const textHtml = escapeHtml(d.text).replace(/\n/g, '<br/>');
+    const wrapAttrs = interactive ? ` class="preview-item" data-id="${d.id}"` : '';
+    const imgErr = interactive ? ` onerror="this.style.visibility='hidden'"` : '';
+    return `<div${wrapAttrs} style="width:100%;display:flex;justify-content:center;box-sizing:border-box;margin:16px 0;">
+  <div style="width:100%;max-width:600px;display:flex;gap:10px;align-items:flex-start;box-sizing:border-box;">
+    <div style="width:32px;flex-shrink:0;margin-top:4px;"><img style="width:32px;height:32px;border-radius:50%;object-fit:cover;display:block;" src="${p.img}" alt="${escapeHtml(d.character || '')}"${imgErr}></div>
+    <div style="background:${hexToRgba(p.color, 0.3)};padding:9px 15px;border-radius:14px;box-sizing:border-box;flex:1;font-size:11pt;color:#4d4d4d;line-height:1.5;">${textHtml}</div>
+  </div>
+</div>`;
+  }
+
+  function buildNarrationHtml(d, interactive){
+    const textHtml = escapeHtml(d.text).replace(/\n/g, '<br/>');
+    const wrapAttrs = interactive ? ` class="preview-item" data-id="${d.id}"` : '';
+    return `<div${wrapAttrs} style="width:100%;display:flex;justify-content:center;box-sizing:border-box;margin:16px 0;">
+  <div style="width:100%;max-width:600px;background:#ffffff;padding:10px 6px;box-sizing:border-box;font-size:11pt;color:#4d4d4d;line-height:1.6;text-align:center;">${textHtml}</div>
+</div>`;
+  }
+
+  function renderPreview(){
+    if (dialogues.length === 0){
+      previewArea.innerHTML = '<p class="empty-hint">대화를 추가하면 여기에 미리보기가 나타나요.</p>';
+      return;
+    }
+    previewArea.innerHTML = dialogues.map(d =>
+      d.type === 'narration' ? buildNarrationHtml(d, true) : buildBubbleHtml(d, true)
+    ).join('');
+  }
+
+  function updateOutputCode(){
+    outputHtml.value = dialogues.map(d =>
+      d.type === 'narration' ? buildNarrationHtml(d, false) : buildBubbleHtml(d, false)
+    ).join('\n');
+  }
+
+  function renderAll(){ renderPreview(); updateOutputCode(); }
+
+  previewArea.addEventListener('click', (e) => {
+    const item = e.target.closest('.preview-item');
+    if (item) openEditModal(Number(item.getAttribute('data-id')));
+  });
+
+  // ---------- Edit modal ----------
+  function openEditModal(id){
+    const item = dialogues.find(d => d.id === id);
+    if (!item) return;
+    editingId = id;
+    currentEditType = item.type;
+    [...$('editTypeSegment').children].forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-type') === item.type);
+    });
+    editCharWrap.style.display = item.type === 'bubble' ? 'block' : 'none';
+    if (item.type === 'bubble') editChar.value = item.character || '';
+    editText.value = item.text;
+    editModalBackdrop.classList.add('open');
+  }
+
+  function closeEditModal(){
+    editModalBackdrop.classList.remove('open');
+    editingId = null;
+  }
+
+  editModalBackdrop.addEventListener('click', (e) => {
+    if (e.target === editModalBackdrop) closeEditModal();
+  });
+  $('cancelEditBtn').addEventListener('click', closeEditModal);
+
+  $('saveEditBtn').addEventListener('click', () => {
+    const item = dialogues.find(d => d.id === editingId);
+    if (!item) return;
+    if (currentEditType === 'bubble' && !editChar.value){ alert('캐릭터를 선택해주세요.'); return; }
+    const text = editText.value.trim();
+    if (!text){ alert('내용을 입력해주세요.'); return; }
+    item.type = currentEditType;
+    item.character = currentEditType === 'bubble' ? editChar.value : null;
+    item.text = text;
+    closeEditModal();
+    renderAll();
+  });
+
+  $('deleteEditBtn').addEventListener('click', () => {
+    if (!confirm('이 항목을 삭제할까요?')) return;
+    dialogues = dialogues.filter(d => d.id !== editingId);
+    closeEditModal();
+    renderAll();
+  });
+
+  // ---------- Export ----------
+  $('copyHtmlBtn').addEventListener('click', async () => {
+    if (!outputHtml.value){ alert('복사할 코드가 없어요.'); return; }
+    try {
+      await navigator.clipboard.writeText(outputHtml.value);
+      showToast('코드를 복사했어요!');
+    } catch(e){
+      try {
+        outputHtml.removeAttribute('readonly');
+        outputHtml.select();
+        document.execCommand('copy');
+        outputHtml.setAttribute('readonly', 'true');
+        showToast('코드를 복사했어요!');
+      } catch(e2){
+        alert('복사에 실패했어요. 코드 영역을 직접 선택해 복사해주세요.');
+      }
+    }
+  });
+
+  $('saveImageBtn').addEventListener('click', async () => {
+    if (dialogues.length === 0){ alert('저장할 대화가 없어요.'); return; }
+    if (typeof html2canvas === 'undefined'){
+      alert('이미지 저장 기능을 불러오지 못했어요. 네트워크 연결을 확인하거나 코드 복사를 이용해주세요.');
+      return;
+    }
+    const btn = $('saveImageBtn');
+    const original = btn.textContent;
+    btn.textContent = '저장 중...';
+    btn.disabled = true;
+    try {
+      const canvas = await html2canvas(previewArea, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+      const link = document.createElement('a');
+      link.download = `chat_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('이미지를 저장했어요!');
+    } catch(e){
+      alert('이미지 저장에 실패했어요. 외부 URL 이미지는 보안 정책상 캡처가 제한될 수 있어요. 업로드한 사진은 이 문제 없이 저장돼요.');
+    } finally {
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- Init ----------
+  (async function init(){
+    await loadPresets();
+    updateCharSelects();
+    renderPresetList();
+    renderAll();
+  })();
+
+})();
+</script>
+</body>
+</html>
